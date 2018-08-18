@@ -17,12 +17,38 @@
 
 package org.apache.flume.source.kafka;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
-import junit.framework.Assert;
-import kafka.common.TopicExistsException;
-import kafka.utils.ZKGroupTopicDirs;
-import kafka.utils.ZkUtils;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.AVRO_EVENT;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.BATCH_DURATION_MS;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.BATCH_SIZE;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.BOOTSTRAP_SERVERS;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.DEFAULT_AUTO_COMMIT;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.DEFAULT_TOPIC_HEADER;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.KAFKA_CONSUMER_PREFIX;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.OLD_GROUP_ID;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.PARTITION_HEADER;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.TIMESTAMP_HEADER;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.TOPIC;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.TOPICS;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.TOPICS_REGEX;
+import static org.apache.flume.source.kafka.KafkaSourceConstants.ZOOKEEPER_CONNECT_FLUME_KEY;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.regex.Pattern;
+
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumWriter;
@@ -43,6 +69,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.security.JaasUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -52,37 +79,12 @@ import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.regex.Pattern;
+import com.google.common.base.Charsets;
+import com.google.common.collect.Lists;
 
-import static org.apache.flume.source.kafka.KafkaSourceConstants.AVRO_EVENT;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.BATCH_DURATION_MS;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.BATCH_SIZE;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.BOOTSTRAP_SERVERS;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.DEFAULT_AUTO_COMMIT;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.KAFKA_CONSUMER_PREFIX;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.OLD_GROUP_ID;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.PARTITION_HEADER;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.TIMESTAMP_HEADER;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.TOPIC;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.TOPICS;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.TOPICS_REGEX;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.DEFAULT_TOPIC_HEADER;
-import static org.apache.flume.source.kafka.KafkaSourceConstants.ZOOKEEPER_CONNECT_FLUME_KEY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
+import junit.framework.Assert;
+import kafka.utils.ZKGroupTopicDirs;
+import kafka.utils.ZkUtils;
 
 public class TestKafkaSource {
   private static final Logger log = LoggerFactory.getLogger(TestKafkaSource.class);

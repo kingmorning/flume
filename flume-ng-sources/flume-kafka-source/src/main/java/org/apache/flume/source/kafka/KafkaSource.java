@@ -66,7 +66,7 @@ import com.google.common.base.Optional;
 import scala.Option;
 
 import static org.apache.flume.source.kafka.KafkaSourceConstants.*;
-import static scala.collection.JavaConverters.asJavaListConverter;
+//import static scala.collection.JavaConverters.asJavaListConverter;
 
 /**
  * A Source for Kafka which reads messages from kafka topics.
@@ -387,8 +387,8 @@ public class KafkaSource extends AbstractPollableSource
         if (securityProtocolStr == null || securityProtocolStr.isEmpty()) {
           securityProtocolStr = CommonClientConfigs.DEFAULT_SECURITY_PROTOCOL;
         }
-        bootstrapServers =
-            lookupBootstrap(zookeeperConnect, SecurityProtocol.valueOf(securityProtocolStr));
+//        bootstrapServers =
+//            lookupBootstrap(zookeeperConnect, SecurityProtocol.valueOf(securityProtocolStr));
       }
     }
 
@@ -460,21 +460,21 @@ public class KafkaSource extends AbstractPollableSource
    * Generates the Kafka bootstrap connection string from the metadata stored in Zookeeper.
    * Allows for backwards compatibility of the zookeeperConnect configuration.
    */
-  private String lookupBootstrap(String zookeeperConnect, SecurityProtocol securityProtocol) {
-    ZkUtils zkUtils = ZkUtils.apply(zookeeperConnect, ZK_SESSION_TIMEOUT, ZK_CONNECTION_TIMEOUT,
-        JaasUtils.isZkSecurityEnabled());
-    try {
-      List<BrokerEndPoint> endPoints =
-          asJavaListConverter(zkUtils.getAllBrokerEndPointsForChannel(securityProtocol)).asJava();
-      List<String> connections = new ArrayList<>();
-      for (BrokerEndPoint endPoint : endPoints) {
-        connections.add(endPoint.connectionString());
-      }
-      return StringUtils.join(connections, ',');
-    } finally {
-      zkUtils.close();
-    }
-  }
+//  private String lookupBootstrap(String zookeeperConnect, SecurityProtocol securityProtocol) {
+//    ZkUtils zkUtils = ZkUtils.apply(zookeeperConnect, ZK_SESSION_TIMEOUT, ZK_CONNECTION_TIMEOUT,
+//        JaasUtils.isZkSecurityEnabled());
+//    try {
+//      List<BrokerEndPoint> endPoints =
+//          asJavaListConverter(zkUtils.getAllBrokerEndPointsForChannel(securityProtocol)).asJava();
+//      List<String> connections = new ArrayList<>();
+//      for (BrokerEndPoint endPoint : endPoints) {
+//        connections.add(endPoint.connectionString());
+//      }
+//      return StringUtils.join(connections, ',');
+//    } finally {
+//      zkUtils.close();
+//    }
+//  }
 
   @VisibleForTesting
   String getBootstrapServers() {
@@ -512,7 +512,7 @@ public class KafkaSource extends AbstractPollableSource
       if (subscriber instanceof TopicListSubscriber &&
           ((TopicListSubscriber) subscriber).get().size() == 1) {
         String topicStr = ((TopicListSubscriber) subscriber).get().get(0);
-        migrateOffsets(topicStr);
+//        migrateOffsets(topicStr);
       } else {
         log.info("Will not attempt to migrate offsets " +
             "because multiple topics or a pattern are defined");
@@ -541,43 +541,43 @@ public class KafkaSource extends AbstractPollableSource
     log.info("Kafka Source {} stopped. Metrics: {}", getName(), counter);
   }
 
-  private void migrateOffsets(String topicStr) {
-    ZkUtils zkUtils = ZkUtils.apply(zookeeperConnect, ZK_SESSION_TIMEOUT, ZK_CONNECTION_TIMEOUT,
-        JaasUtils.isZkSecurityEnabled());
-    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(kafkaProps);
-    try {
-      Map<TopicPartition, OffsetAndMetadata> kafkaOffsets =
-          getKafkaOffsets(consumer, topicStr);
-      if (!kafkaOffsets.isEmpty()) {
-        log.info("Found Kafka offsets for topic " + topicStr +
-            ". Will not migrate from zookeeper");
-        log.debug("Offsets found: {}", kafkaOffsets);
-        return;
-      }
-
-      log.info("No Kafka offsets found. Migrating zookeeper offsets");
-      Map<TopicPartition, OffsetAndMetadata> zookeeperOffsets =
-          getZookeeperOffsets(zkUtils, topicStr);
-      if (zookeeperOffsets.isEmpty()) {
-        log.warn("No offsets to migrate found in Zookeeper");
-        return;
-      }
-
-      log.info("Committing Zookeeper offsets to Kafka");
-      log.debug("Offsets to commit: {}", zookeeperOffsets);
-      consumer.commitSync(zookeeperOffsets);
-      // Read the offsets to verify they were committed
-      Map<TopicPartition, OffsetAndMetadata> newKafkaOffsets =
-          getKafkaOffsets(consumer, topicStr);
-      log.debug("Offsets committed: {}", newKafkaOffsets);
-      if (!newKafkaOffsets.keySet().containsAll(zookeeperOffsets.keySet())) {
-        throw new FlumeException("Offsets could not be committed");
-      }
-    } finally {
-      zkUtils.close();
-      consumer.close();
-    }
-  }
+//  private void migrateOffsets(String topicStr) {
+//    ZkUtils zkUtils = ZkUtils.apply(zookeeperConnect, ZK_SESSION_TIMEOUT, ZK_CONNECTION_TIMEOUT,
+//        JaasUtils.isZkSecurityEnabled());
+//    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(kafkaProps);
+//    try {
+//      Map<TopicPartition, OffsetAndMetadata> kafkaOffsets =
+//          getKafkaOffsets(consumer, topicStr);
+//      if (!kafkaOffsets.isEmpty()) {
+//        log.info("Found Kafka offsets for topic " + topicStr +
+//            ". Will not migrate from zookeeper");
+//        log.debug("Offsets found: {}", kafkaOffsets);
+//        return;
+//      }
+//
+//      log.info("No Kafka offsets found. Migrating zookeeper offsets");
+//      Map<TopicPartition, OffsetAndMetadata> zookeeperOffsets =
+//          getZookeeperOffsets(zkUtils, topicStr);
+//      if (zookeeperOffsets.isEmpty()) {
+//        log.warn("No offsets to migrate found in Zookeeper");
+//        return;
+//      }
+//
+//      log.info("Committing Zookeeper offsets to Kafka");
+//      log.debug("Offsets to commit: {}", zookeeperOffsets);
+//      consumer.commitSync(zookeeperOffsets);
+//      // Read the offsets to verify they were committed
+//      Map<TopicPartition, OffsetAndMetadata> newKafkaOffsets =
+//          getKafkaOffsets(consumer, topicStr);
+//      log.debug("Offsets committed: {}", newKafkaOffsets);
+//      if (!newKafkaOffsets.keySet().containsAll(zookeeperOffsets.keySet())) {
+//        throw new FlumeException("Offsets could not be committed");
+//      }
+//    } finally {
+//      zkUtils.close();
+//      consumer.close();
+//    }
+//  }
 
   private Map<TopicPartition, OffsetAndMetadata> getKafkaOffsets(
       KafkaConsumer<String, byte[]> client, String topicStr) {
@@ -593,23 +593,23 @@ public class KafkaSource extends AbstractPollableSource
     return offsets;
   }
 
-  private Map<TopicPartition, OffsetAndMetadata> getZookeeperOffsets(ZkUtils client,
-                                                                     String topicStr) {
-    Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-    ZKGroupTopicDirs topicDirs = new ZKGroupTopicDirs(groupId, topicStr);
-    List<String> partitions = asJavaListConverter(
-        client.getChildrenParentMayNotExist(topicDirs.consumerOffsetDir())).asJava();
-    for (String partition : partitions) {
-      TopicPartition key = new TopicPartition(topicStr, Integer.valueOf(partition));
-      Option<String> data = client.readDataMaybeNull(
-          topicDirs.consumerOffsetDir() + "/" + partition)._1();
-      if (data.isDefined()) {
-        Long offset = Long.valueOf(data.get());
-        offsets.put(key, new OffsetAndMetadata(offset));
-      }
-    }
-    return offsets;
-  }
+//  private Map<TopicPartition, OffsetAndMetadata> getZookeeperOffsets(ZkUtils client,
+//                                                                     String topicStr) {
+//    Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+//    ZKGroupTopicDirs topicDirs = new ZKGroupTopicDirs(groupId, topicStr);
+//    List<String> partitions = asJavaListConverter(
+//        client.getChildrenParentMayNotExist(topicDirs.consumerOffsetDir())).asJava();
+//    for (String partition : partitions) {
+//      TopicPartition key = new TopicPartition(topicStr, Integer.valueOf(partition));
+//      Option<String> data = client.readDataMaybeNull(
+//          topicDirs.consumerOffsetDir() + "/" + partition)._1();
+//      if (data.isDefined()) {
+//        Long offset = Long.valueOf(data.get());
+//        offsets.put(key, new OffsetAndMetadata(offset));
+//      }
+//    }
+//    return offsets;
+//  }
 }
 
 class SourceRebalanceListener implements ConsumerRebalanceListener {

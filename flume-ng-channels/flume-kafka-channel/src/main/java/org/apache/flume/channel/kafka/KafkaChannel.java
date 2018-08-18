@@ -77,7 +77,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.apache.flume.channel.kafka.KafkaChannelConfiguration.*;
-import static scala.collection.JavaConverters.asJavaListConverter;
+//import static scala.collection.JavaConverters.asJavaListConverter;
 
 public class KafkaChannel extends BasicChannelSemantics {
 
@@ -134,7 +134,7 @@ public class KafkaChannel extends BasicChannelSemantics {
     // As a migration step check if there are any offsets from the group stored in kafka
     // If not read them from Zookeeper and commit them to Kafka
     if (migrateZookeeperOffsets && zookeeperConnect != null && !zookeeperConnect.isEmpty()) {
-      migrateOffsets();
+//      migrateOffsets();
     }
     producer = new KafkaProducer<String, byte[]>(producerProps);
     // We always have just one topic being read by one thread
@@ -306,39 +306,39 @@ public class KafkaChannel extends BasicChannelSemantics {
     }
   }
 
-  private void migrateOffsets() {
-    ZkUtils zkUtils = ZkUtils.apply(zookeeperConnect, ZK_SESSION_TIMEOUT, ZK_CONNECTION_TIMEOUT,
-        JaasUtils.isZkSecurityEnabled());
-    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
-    try {
-      Map<TopicPartition, OffsetAndMetadata> kafkaOffsets = getKafkaOffsets(consumer);
-      if (!kafkaOffsets.isEmpty()) {
-        logger.info("Found Kafka offsets for topic {}. Will not migrate from zookeeper", topicStr);
-        logger.debug("Offsets found: {}", kafkaOffsets);
-        return;
-      }
-
-      logger.info("No Kafka offsets found. Migrating zookeeper offsets");
-      Map<TopicPartition, OffsetAndMetadata> zookeeperOffsets = getZookeeperOffsets(zkUtils);
-      if (zookeeperOffsets.isEmpty()) {
-        logger.warn("No offsets to migrate found in Zookeeper");
-        return;
-      }
-
-      logger.info("Committing Zookeeper offsets to Kafka");
-      logger.debug("Offsets to commit: {}", zookeeperOffsets);
-      consumer.commitSync(zookeeperOffsets);
-      // Read the offsets to verify they were committed
-      Map<TopicPartition, OffsetAndMetadata> newKafkaOffsets = getKafkaOffsets(consumer);
-      logger.debug("Offsets committed: {}", newKafkaOffsets);
-      if (!newKafkaOffsets.keySet().containsAll(zookeeperOffsets.keySet())) {
-        throw new FlumeException("Offsets could not be committed");
-      }
-    } finally {
-      zkUtils.close();
-      consumer.close();
-    }
-  }
+//  private void migrateOffsets() {
+//    ZkUtils zkUtils = ZkUtils.apply(zookeeperConnect, ZK_SESSION_TIMEOUT, ZK_CONNECTION_TIMEOUT,
+//        JaasUtils.isZkSecurityEnabled());
+//    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(consumerProps);
+//    try {
+//      Map<TopicPartition, OffsetAndMetadata> kafkaOffsets = getKafkaOffsets(consumer);
+//      if (!kafkaOffsets.isEmpty()) {
+//        logger.info("Found Kafka offsets for topic {}. Will not migrate from zookeeper", topicStr);
+//        logger.debug("Offsets found: {}", kafkaOffsets);
+//        return;
+//      }
+//
+//      logger.info("No Kafka offsets found. Migrating zookeeper offsets");
+//      Map<TopicPartition, OffsetAndMetadata> zookeeperOffsets = getZookeeperOffsets(zkUtils);
+//      if (zookeeperOffsets.isEmpty()) {
+//        logger.warn("No offsets to migrate found in Zookeeper");
+//        return;
+//      }
+//
+//      logger.info("Committing Zookeeper offsets to Kafka");
+//      logger.debug("Offsets to commit: {}", zookeeperOffsets);
+//      consumer.commitSync(zookeeperOffsets);
+//      // Read the offsets to verify they were committed
+//      Map<TopicPartition, OffsetAndMetadata> newKafkaOffsets = getKafkaOffsets(consumer);
+//      logger.debug("Offsets committed: {}", newKafkaOffsets);
+//      if (!newKafkaOffsets.keySet().containsAll(zookeeperOffsets.keySet())) {
+//        throw new FlumeException("Offsets could not be committed");
+//      }
+//    } finally {
+//      zkUtils.close();
+//      consumer.close();
+//    }
+//  }
 
   private Map<TopicPartition, OffsetAndMetadata> getKafkaOffsets(
       KafkaConsumer<String, byte[]> client) {
@@ -354,22 +354,22 @@ public class KafkaChannel extends BasicChannelSemantics {
     return offsets;
   }
 
-  private Map<TopicPartition, OffsetAndMetadata> getZookeeperOffsets(ZkUtils client) {
-    Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
-    ZKGroupTopicDirs topicDirs = new ZKGroupTopicDirs(groupId, topicStr);
-    List<String> partitions = asJavaListConverter(
-        client.getChildrenParentMayNotExist(topicDirs.consumerOffsetDir())).asJava();
-    for (String partition : partitions) {
-      TopicPartition key = new TopicPartition(topicStr, Integer.valueOf(partition));
-      Option<String> data = client.readDataMaybeNull(
-          topicDirs.consumerOffsetDir() + "/" + partition)._1();
-      if (data.isDefined()) {
-        Long offset = Long.valueOf(data.get());
-        offsets.put(key, new OffsetAndMetadata(offset));
-      }
-    }
-    return offsets;
-  }
+//  private Map<TopicPartition, OffsetAndMetadata> getZookeeperOffsets(ZkUtils client) {
+//    Map<TopicPartition, OffsetAndMetadata> offsets = new HashMap<>();
+//    ZKGroupTopicDirs topicDirs = new ZKGroupTopicDirs(groupId, topicStr);
+//    List<String> partitions = asJavaListConverter(
+//        client.getChildrenParentMayNotExist(topicDirs.consumerOffsetDir())).asJava();
+//    for (String partition : partitions) {
+//      TopicPartition key = new TopicPartition(topicStr, Integer.valueOf(partition));
+//      Option<String> data = client.readDataMaybeNull(
+//          topicDirs.consumerOffsetDir() + "/" + partition)._1();
+//      if (data.isDefined()) {
+//        Long offset = Long.valueOf(data.get());
+//        offsets.put(key, new OffsetAndMetadata(offset));
+//      }
+//    }
+//    return offsets;
+//  }
 
   private void decommissionConsumerAndRecords(ConsumerAndRecords c) {
     c.consumer.wakeup();
